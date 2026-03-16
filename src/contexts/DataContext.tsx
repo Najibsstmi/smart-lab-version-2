@@ -25,6 +25,20 @@ const LS_BOOKINGS = 'smartlab_bookings';
 const LS_INVENTORY = 'smartlab_inventory';
 const LS_EXPERIMENTS = 'smartlab_experiments';
 
+function mergeExperiments(primary: Experiment[], fallback: Experiment[]): Experiment[] {
+  const byId = new Map<string, Experiment>();
+
+  // Keep fallback data first, then let primary data override if the id already exists.
+  fallback.forEach((exp) => byId.set(exp.id, exp));
+  primary.forEach((exp) => byId.set(exp.id, exp));
+
+  return Array.from(byId.values()).sort((a, b) => {
+    if (a.tingkatan !== b.tingkatan) return a.tingkatan - b.tingkatan;
+    if (a.bab !== b.bab) return a.bab - b.bab;
+    return a.tajuk.localeCompare(b.tajuk, 'ms');
+  });
+}
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -40,7 +54,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (storedInventory) setInventory(JSON.parse(storedInventory));
 
       const storedExperiments = localStorage.getItem(LS_EXPERIMENTS);
-      if (storedExperiments) setExperiments(JSON.parse(storedExperiments));
+      if (storedExperiments) {
+        const parsedExperiments = JSON.parse(storedExperiments);
+        if (Array.isArray(parsedExperiments)) {
+          setExperiments(mergeExperiments(parsedExperiments, mockExperiments));
+        }
+      }
     } catch (e) {
       console.error('LocalStorage read failed:', e);
     }
@@ -66,8 +85,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (data.experiments && data.experiments.length > 0) {
-          setExperiments(data.experiments);
-          localStorage.setItem(LS_EXPERIMENTS, JSON.stringify(data.experiments));
+          const mergedExperiments = mergeExperiments(data.experiments, mockExperiments);
+          setExperiments(mergedExperiments);
+          localStorage.setItem(LS_EXPERIMENTS, JSON.stringify(mergedExperiments));
+
+          // Push back any newly introduced local experiments so cloud data stays current.
+          if (mergedExperiments.length > data.experiments.length) {
+            syncExperimentsToDB(mergedExperiments);
+          }
         } else {
           setExperiments(mockExperiments);
           localStorage.setItem(LS_EXPERIMENTS, JSON.stringify(mockExperiments));
