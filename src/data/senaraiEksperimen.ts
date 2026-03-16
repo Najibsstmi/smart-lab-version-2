@@ -5162,6 +5162,91 @@ export const senaraiEksperimen: EksperimenData[] = [
     ]
   },
   {
+    "id": "5-eksperimen-4.1-839",
+    "tingkatan": 5,
+    "jenis": "Eksperimen",
+    "nombor": "4.1",
+    "tajuk": "Mengkaji kesan suhu terhadap kadar tindak balas",
+    "senarai_bahan": [
+      "Larutan natrium tiosulfat 0.2 mol dm-3",
+      "Asid sulfurik 1 mol dm-3",
+      "Kertas putih dengan tanda 'X'"
+    ],
+    "senarai_radas": [
+      "Kelalang kon 250 cm3",
+      "Silinder penyukat 50 cm3",
+      "Silinder penyukat 10 cm3",
+      "Jam randik",
+      "Termometer",
+      "Penunu Bunsen",
+      "Tungku kaki tiga",
+      "Kasa dawai"
+    ]
+  },
+  {
+    "id": "5-eksperimen-4.2-843",
+    "tingkatan": 5,
+    "jenis": "Eksperimen",
+    "nombor": "4.2",
+    "tajuk": "Mengkaji kesan kepekatan terhadap kadar tindak balas",
+    "senarai_bahan": [
+      "Larutan natrium tiosulfat (0.20, 0.16, 0.12, 0.08, 0.04 mol dm-3)",
+      "Asid sulfurik 1 mol dm-3",
+      "Air suling",
+      "Kertas putih dengan tanda 'X'"
+    ],
+    "senarai_radas": [
+      "Kelalang kon 250 cm3",
+      "Silinder penyukat 50 cm3",
+      "Silinder penyukat 10 cm3",
+      "Jam randik"
+    ]
+  },
+  {
+    "id": "5-eksperimen-4.3-847",
+    "tingkatan": 5,
+    "jenis": "Eksperimen",
+    "nombor": "4.3",
+    "tajuk": "Mengkaji kesan saiz bahan tindak balas terhadap kadar tindak balas",
+    "senarai_bahan": [
+      "Cebisan marmar hancur bersaiz kecil",
+      "Ketulan marmar bersaiz besar",
+      "Asid hidroklorik cair 0.1 mol dm-3"
+    ],
+    "senarai_radas": [
+      "Kelalang kon 250 cm3",
+      "Silinder penyukat 50 cm3",
+      "Penyumbat getah dengan salur penghantar",
+      "Buret",
+      "Besen",
+      "Neraca elektronik",
+      "Kaki retort dengan pengapit",
+      "Jam randik"
+    ]
+  },
+  {
+    "id": "5-eksperimen-4.4-852",
+    "tingkatan": 5,
+    "jenis": "Eksperimen",
+    "nombor": "4.4",
+    "tajuk": "Mengkaji kesan kehadiran mangkin terhadap kadar tindak balas",
+    "senarai_bahan": [
+      "Ketulan zink bersaiz kecil",
+      "Asid hidroklorik cair 0.1 mol dm-3",
+      "Larutan kuprum(II) sulfat 0.5 mol dm-3"
+    ],
+    "senarai_radas": [
+      "Kelalang kon 250 cm3",
+      "Silinder penyukat 50 cm3",
+      "Penyumbat getah dengan salur penghantar",
+      "Buret",
+      "Besen",
+      "Neraca elektronik",
+      "Kaki retort dengan pengapit",
+      "Jam randik"
+    ]
+  },
+  {
     "id": "5-eksperimen-5.1-826",
     "tingkatan": 5,
     "jenis": "Eksperimen",
