@@ -169,8 +169,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     syncInventoryToDB(newInventory);
   };
 
-  const fetchLatestUsers = async (): Promise<User[]> => {
-    if (users.length > 0) {
+  const fetchLatestUsers = async (forceRefresh = false): Promise<User[]> => {
+    if (!forceRefresh && users.length > 0) {
       return users;
     }
 
@@ -300,7 +300,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const notifyNewBooking = async (booking: Booking) => {
-    const allUsers = await fetchLatestUsers();
+    const allUsers = await fetchLatestUsers(true);
     const recipients = getRecipientEmailsByRole(allUsers, ['Pembantu Makmal', 'Ketua Panitia']);
 
     const subject = `[Smart Lab] Tempahan Baru - ${booking.guru_name}`;
@@ -318,7 +318,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     status: 'Approved' | 'Rejected',
     catatanMakmal?: string
   ) => {
-    const allUsers = await fetchLatestUsers();
+    const allUsers = await fetchLatestUsers(true);
     const ketuaEmails = getRecipientEmailsByRole(allUsers, ['Ketua Panitia']);
     const recipients = Array.from(new Set([(booking.guru_email || '').trim().toLowerCase(), ...ketuaEmails].filter(Boolean)));
 
@@ -348,14 +348,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(LS_BOOKINGS, JSON.stringify(newBookingsList));
 
     // Hantar ke Sheets
+    let isSheetsSaved = false;
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'add', booking: newBooking }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      isSheetsSaved = true;
     } catch (error) {
       console.error('Gagal hantar ke Google Sheets:', error);
+    }
+
+    if (!isSheetsSaved) {
+      console.warn('Notifikasi emel dibatalkan kerana simpanan ke Google Sheets gagal.');
+      return;
     }
 
     await notifyNewBooking(newBooking);
@@ -370,7 +382,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const booking = bookings.find((b) => b.id === id);
 
     const updatedBookings = bookings.map((b) =>
-      b.id === id ? { ...b, status, catatan_makmal, approved_by: status === 'Approved' ? approved_by : b.approved_by } : b
+      b.id === id ? { ...b, status, catatan_makmal, approved_by: status === 'Approved' ? approved_by : undefined } : b
     );
     setBookings(updatedBookings);
     localStorage.setItem(LS_BOOKINGS, JSON.stringify(updatedBookings));
@@ -393,8 +405,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Hantar status ke Sheets
+    let isStatusUpdated = false;
     try {
-      await fetch(GOOGLE_SCRIPT_URL, {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
@@ -405,8 +418,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           approved_by: approved_by || '',
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      isStatusUpdated = true;
     } catch (error) {
       console.error('Gagal kemaskini Google Sheets:', error);
+    }
+
+    if (!isStatusUpdated) {
+      console.warn('Notifikasi emel status dibatalkan kerana kemaskini ke Google Sheets gagal.');
+      return;
     }
 
     if (booking) {
