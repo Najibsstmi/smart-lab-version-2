@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { format } from 'date-fns';
 import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getPushReadinessReason, registerPushForUser } from '../lib/pushNotifications';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { bookings } = useData();
   const navigate = useNavigate();
+  const [pushStatus, setPushStatus] = useState('');
 
   const userBookings = bookings.filter(b => b.guru_id === user?.id);
   const pendingBookings = bookings.filter(b => b.status === 'Pending');
@@ -33,6 +35,37 @@ export default function Dashboard() {
     .sort((a, b) => getBookingTimestamp(b) - getBookingTimestamp(a))
     .slice(0, 5);
 
+  const canShowPushActivate =
+    user?.role === 'Pembantu Makmal' || user?.role === 'Ketua Panitia';
+
+  const pushReadinessReason = useMemo(() => {
+    if (!canShowPushActivate) return '';
+    return getPushReadinessReason();
+  }, [canShowPushActivate]);
+
+  const handleEnablePush = async () => {
+    if (!user) return;
+
+    setPushStatus('Memohon kebenaran notifikasi...');
+
+    const result = await registerPushForUser(
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      'https://script.google.com/macros/s/AKfycbwSnIL8EVPYdyFcH8RLR-KB7olxDBsq5TVJ3y4muYkYrErf9oTCL5aA8w8cRuj15Zu-xg/exec',
+      { promptPermission: true }
+    );
+
+    if (result.ok) {
+      setPushStatus('Notifikasi telefon berjaya diaktifkan.');
+    } else {
+      setPushStatus(result.reason || 'Notifikasi belum aktif.');
+    }
+  };
+
   const StatusIcon = ({ status }: { status: string }) => {
     switch (status) {
       case 'Approved': return <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
@@ -46,6 +79,23 @@ export default function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Selamat Datang, {user?.name}</h1>
         <p className="text-slate-500">Gambaran keseluruhan sistem tempahan makmal anda.</p>
+        {canShowPushActivate && (
+          <div className="mt-4 space-y-2">
+            <button
+              type="button"
+              onClick={handleEnablePush}
+              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+            >
+              Aktifkan Notifikasi Telefon
+            </button>
+            {pushReadinessReason && (
+              <p className="text-xs text-amber-700">{pushReadinessReason}</p>
+            )}
+            {pushStatus && (
+              <p className="text-xs text-slate-600">{pushStatus}</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}

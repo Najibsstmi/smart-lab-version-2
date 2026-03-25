@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Role } from '../types';
+import { registerPushForUser } from '../lib/pushNotifications';
 
 type StoredUser = {
   id: string;
@@ -31,7 +32,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const storedUser = localStorage.getItem(LOCAL_USER_KEY);
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        void registerPushForUser(parsedUser, GOOGLE_SCRIPT_URL);
       }
     } catch (err) {
       console.error('Auth restore failed:', err);
@@ -59,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.ok && data.user) {
         setUser(data.user);
         localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(data.user));
+        void registerPushForUser(data.user, GOOGLE_SCRIPT_URL);
         return true;
       }
 
@@ -104,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.ok && data.user) {
         setUser(data.user);
         localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(data.user));
+        void registerPushForUser(data.user, GOOGLE_SCRIPT_URL);
         return true;
       }
 

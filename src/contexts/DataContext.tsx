@@ -236,6 +236,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await Promise.allSettled(recipients.map((to) => sendEmail(to, subject, html)));
   };
 
+  const sendPushToRoles = async (
+    roles: Role[],
+    title: string,
+    body: string,
+    url: string,
+    booking: Booking
+  ) => {
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'sendPushToRoles',
+          roles,
+          notification: {
+            title,
+            body,
+            url,
+          },
+          booking: {
+            id: booking.id,
+            guru_name: booking.guru_name,
+            eksperimen_tajuk: booking.eksperimen_tajuk,
+            tarikh: booking.tarikh,
+            masa: booking.masa,
+            status: booking.status,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error('Gagal trigger push notification:', error);
+    }
+  };
+
   const buildProfessionalEmailHtml = ({
     title,
     intro,
@@ -325,6 +359,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const notifyNewBooking = async (booking: Booking) => {
     const allUsers = await fetchLatestUsers(true);
     const recipients = getRecipientEmailsByRole(allUsers, ['Pembantu Makmal', 'Ketua Panitia']);
+    const appUrl = getAppBaseUrl();
 
     const subject = `[Smart Lab] Tempahan Baru - ${booking.guru_name}`;
     const html = buildProfessionalEmailHtml({
@@ -333,7 +368,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       booking,
     });
 
-    await sendBulkEmails(recipients, subject, html);
+    await Promise.allSettled([
+      sendBulkEmails(recipients, subject, html),
+      sendPushToRoles(
+        ['Pembantu Makmal', 'Ketua Panitia'],
+        'Tempahan Baru Smart Lab',
+        `${booking.guru_name} membuat tempahan ${booking.eksperimen_tajuk} pada ${booking.tarikh} ${booking.masa}.`,
+        `${appUrl}/tempahan?status=Pending`,
+        booking
+      ),
+    ]);
   };
 
   const notifyBookingStatusUpdate = async (
