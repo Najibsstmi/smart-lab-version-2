@@ -3,12 +3,13 @@ import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { Printer, Check, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function BookingList() {
   const { bookings, updateBookingStatus } = useData();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -16,13 +17,36 @@ export default function BookingList() {
   const [catatan, setCatatan] = useState('');
 
   const isGuru = user?.role === 'Guru';
+  const statusParam = searchParams.get('status');
+  const allowedStatus = statusParam === 'Pending' || statusParam === 'Approved' || statusParam === 'Rejected'
+    ? statusParam
+    : null;
 
   // ✅ Guru nampak tempahan sendiri sahaja
-  const visibleBookings = isGuru ? bookings.filter((b) => b.guru_id === user?.id) : bookings;
+  const roleBasedBookings = isGuru ? bookings.filter((b) => b.guru_id === user?.id) : bookings;
+  const visibleBookings = allowedStatus
+    ? roleBasedBookings.filter((b) => b.status === allowedStatus)
+    : roleBasedBookings;
 
-  // Sort by created_at descending
+  const getBookingTimestamp = (booking: (typeof bookings)[number]) => {
+    const createdAtTs = Date.parse(booking.created_at);
+    if (!Number.isNaN(createdAtTs)) return createdAtTs;
+
+    const tarikhMasaTs = Date.parse(`${booking.tarikh}T${booking.masa || '00:00'}:00`);
+    if (!Number.isNaN(tarikhMasaTs)) return tarikhMasaTs;
+
+    const idMatch = booking.id.match(/\d+/);
+    if (idMatch) {
+      const idTs = Number(idMatch[0]);
+      if (!Number.isNaN(idTs)) return idTs;
+    }
+
+    return 0;
+  };
+
+  // Sort paling terkini di atas (descending)
   const sortedBookings = [...visibleBookings].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    (a, b) => getBookingTimestamp(b) - getBookingTimestamp(a)
   );
 
 const handlePrint = (id: string) => {
@@ -54,9 +78,22 @@ const handlePrint = (id: string) => {
             {isGuru ? 'Tempahan Saya' : 'Senarai Tempahan'}
           </h1>
           <p className="text-slate-500">
-            {isGuru ? 'Semak status & cetak borang tempahan anda.' : 'Urus dan sahkan tempahan makmal.'}
+            {allowedStatus
+              ? `Paparan ditapis: ${allowedStatus}`
+              : isGuru
+              ? 'Semak status & cetak borang tempahan anda.'
+              : 'Urus dan sahkan tempahan makmal.'}
           </p>
         </div>
+        {allowedStatus && (
+          <button
+            type="button"
+            onClick={() => navigate('/tempahan')}
+            className="px-3 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+          >
+            Reset Filter
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

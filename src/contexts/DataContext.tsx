@@ -61,6 +61,17 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 
+const getAppBaseUrl = () => {
+  const configuredUrl = (import.meta.env.VITE_APP_URL || '').trim();
+  if (configuredUrl) return configuredUrl.replace(/\/$/, '');
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  return 'http://localhost:3000';
+};
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -244,6 +255,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         : booking.status === 'Rejected'
         ? 'Ditolak'
         : 'Menunggu';
+    const appUrl = getAppBaseUrl();
+    const bookingListUrl = `${appUrl}/tempahan`;
 
     return `
       <div style="background:#f3f4f6;padding:24px;font-family:Segoe UI,Arial,sans-serif;color:#111827;">
@@ -291,6 +304,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             </table>
 
             ${catatanMakmal ? `<p style="margin:16px 0 0;line-height:1.6;color:#334155;"><strong>Catatan Makmal:</strong> ${escapeHtml(catatanMakmal)}</p>` : ''}
+
+            <div style="margin:20px 0 0;">
+              <a
+                href="${escapeHtml(bookingListUrl)}"
+                style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;"
+              >
+                Buka Smart Lab Untuk Tindakan Lanjut
+              </a>
+              <p style="margin:10px 0 0;color:#64748b;font-size:12px;word-break:break-all;">Jika butang tidak berfungsi, salin pautan ini: ${escapeHtml(bookingListUrl)}</p>
+            </div>
 
             <p style="margin:18px 0 0;line-height:1.6;color:#334155;">Email ini dijana secara automatik oleh sistem Smart Lab.</p>
           </div>
