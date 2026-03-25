@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import { Resend } from "resend";
@@ -30,7 +31,7 @@ async function startServer() {
     try {
       const resend = new Resend(resendApiKey);
       const data = await resend.emails.send({
-        from: "Smart Lab <onboarding@resend.dev>",
+        from: "Smart Lab <support@cikgustem.com>",
         to: [to],
         subject: subject,
         html: html,
