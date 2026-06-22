@@ -1,10 +1,14 @@
 {
   "name": "Smart Lab Booking",
   "short_name": "SmartLab",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "description": "Sistem Tempahan Makmal Sekolah Seni Malaysia Johor",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",

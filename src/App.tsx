@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 
 import Layout from './components/Layout';
+import { InstallAppButton } from './components/InstallAppButton';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -35,6 +36,7 @@ export default function App() {
   return (
     <AuthProvider>
       <DataProvider>
+        <InstallAppButton />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

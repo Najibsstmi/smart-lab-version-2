@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smart-lab-v2';
+const CACHE_NAME = 'smart-lab-v3';
 const urlsToCache = [
   '/',
   '/index.html',
