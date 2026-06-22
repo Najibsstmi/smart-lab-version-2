@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smart-lab-v1';
+const CACHE_NAME = 'smart-lab-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -40,7 +40,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    fetch(event.request)
+    fetch(
+      event.request.mode === 'navigate'
+        ? new Request(event.request, { cache: 'no-store' })
+        : event.request
+    )
       .then((response) => {
         // Clone response untuk cache
         const responseClone = response.clone();
@@ -51,7 +55,13 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         return caches.match(event.request).then((response) => {
-          return response || new Response('Offline - Halaman tidak tersedia', {
+          if (response) return response;
+
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+
+          return new Response('Offline - Halaman tidak tersedia', {
             status: 503,
             statusText: 'Service Unavailable',
             headers: new Headers({

@@ -11,6 +11,16 @@ if ('serviceWorker' in navigator) {
       .register('/sw.js')
       .then((registration) => {
         console.log('Service Worker registered:', registration);
+        void registration.update();
+
+        if (navigator.serviceWorker.controller) {
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
+        }
       })
       .catch((error) => {
         console.error('Service Worker registration failed:', error);

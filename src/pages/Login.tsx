@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Footer from '../components/Footer';
+import { KeyRound } from 'lucide-react';
 
 export default function Login() {
 
@@ -90,18 +91,9 @@ export default function Login() {
                 {/* Password */}
                 <div>
 
-                  <div className="flex items-center justify-between gap-4">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Kata Laluan
-                    </label>
-
-                    <Link
-                      to="/lupa-kata-laluan"
-                      className="text-sm font-medium text-emerald-600 hover:text-emerald-500"
-                    >
-                      Lupa kata laluan?
-                    </Link>
-                  </div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Kata Laluan
+                  </label>
 
                   <div className="mt-1">
 
@@ -131,6 +123,16 @@ export default function Login() {
                 </div>
 
               </form>
+
+              <div className="mt-4">
+                <Link
+                  to="/lupa-kata-laluan"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  Lupa Kata Laluan? Reset Sekarang
+                </Link>
+              </div>
 
               {/* Register link */}
               <div className="mt-6 text-center">

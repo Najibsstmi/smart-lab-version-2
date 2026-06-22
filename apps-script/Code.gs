@@ -133,7 +133,7 @@ function resetPassword_(sheetPengguna, emailValue, codeValue, newPasswordValue) 
     return { ok: false, error: 'Missing fields' };
   }
 
-  if (newPassword.length < 8) {
+  if (newPassword.length < 4) {
     return { ok: false, error: 'Password too short' };
   }
 

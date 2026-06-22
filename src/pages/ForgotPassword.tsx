@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 const errorMessages: Record<string, string> = {
   'Invalid or expired code': 'Kod tidak sah atau telah tamat tempoh. Sila minta kod baharu.',
   'Too many attempts': 'Terlalu banyak percubaan. Sila minta kod baharu.',
-  'Password too short': 'Kata laluan baharu mestilah sekurang-kurangnya 8 aksara.',
+  'Password too short': 'Kata laluan baharu mestilah sekurang-kurangnya 4 aksara.',
   'Email not found': 'Akaun untuk emel ini tidak dijumpai.',
   'Network error': 'Sambungan gagal. Sila cuba lagi.',
 };
@@ -135,7 +135,7 @@ export default function ForgotPassword() {
                       id="new-password"
                       type="password"
                       required
-                      minLength={8}
+                      minLength={4}
                       autoComplete="new-password"
                       value={newPassword}
                       onChange={(event) => setNewPassword(event.target.value)}
@@ -151,7 +151,7 @@ export default function ForgotPassword() {
                       id="confirm-password"
                       type="password"
                       required
-                      minLength={8}
+                      minLength={4}
                       autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}
