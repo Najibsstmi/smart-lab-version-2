@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Booking, Experiment, InventoryItem, Role, User } from '../types';
 import { mockExperiments, mockInventory } from '../lib/mockData';
 
@@ -10,7 +10,7 @@ type DataContextType = {
   experiments: Experiment[];
   inventory: InventoryItem[];
   bookings: Booking[];
-  addBooking: (booking: Omit<Booking, 'id' | 'status' | 'created_at'>) => void;
+  addBooking: (booking: Omit<Booking, 'id' | 'status' | 'created_at'>) => Promise<boolean>;
   updateBookingStatus: (
     id: string,
     status: 'Approved' | 'Rejected',
@@ -73,7 +73,7 @@ const getAppBaseUrl = () => {
 };
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [experiments, setExperiments] = useState<Experiment[]>(mockExperiments);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -146,7 +146,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           syncExperimentsToDB(mockExperiments);
         }
       })
-      .catch((err) => console.error('Gagal ambil dari Google Sheets:', err));
+      .catch((err) => {
+        console.error('Gagal ambil dari Google Sheets:', err);
+        setExperiments((current) => (current.length > 0 ? current : mockExperiments));
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -401,7 +404,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await sendBulkEmails(recipients, subject, html);
   };
 
-  const addBooking = async (bookingData: Omit<Booking, 'id' | 'status' | 'created_at'>) => {
+  const addBooking = async (
+    bookingData: Omit<Booking, 'id' | 'status' | 'created_at'>
+  ): Promise<boolean> => {
     const newBooking: Booking = {
       ...bookingData,
       id: `b${Date.now()}`,
@@ -409,13 +414,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       created_at: new Date().toISOString(),
     };
 
-    // Update UI + local
-    const newBookingsList = [...bookings, newBooking];
-    setBookings(newBookingsList);
-    localStorage.setItem(LS_BOOKINGS, JSON.stringify(newBookingsList));
-
-    // Hantar ke Sheets
-    let isSheetsSaved = false;
+    // Simpan ke Sheets dahulu supaya pengguna tidak menerima kejayaan palsu.
     try {
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
@@ -427,17 +426,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      isSheetsSaved = true;
+      const result = await response.json();
+      if (result.status !== 'success' && result.ok !== true) {
+        throw new Error(result.message || result.error || 'Simpanan ditolak oleh Google Apps Script');
+      }
     } catch (error) {
       console.error('Gagal hantar ke Google Sheets:', error);
+      return false;
     }
 
-    if (!isSheetsSaved) {
-      console.warn('Notifikasi emel dibatalkan kerana simpanan ke Google Sheets gagal.');
-      return;
-    }
+    setBookings((currentBookings) => {
+      const newBookingsList = [...currentBookings, newBooking];
+      localStorage.setItem(LS_BOOKINGS, JSON.stringify(newBookingsList));
+      return newBookingsList;
+    });
 
-    await notifyNewBooking(newBooking);
+    // Tempahan sudah selamat disimpan; notifikasi tidak perlu menahan UI.
+    void notifyNewBooking(newBooking);
+    return true;
   };
 
   const updateBookingStatus = async (
@@ -505,10 +511,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const value = useMemo(
-    () => ({ experiments, inventory, bookings, addBooking, updateBookingStatus }),
-    [experiments, inventory, bookings]
-  );
+  const value = { experiments, inventory, bookings, addBooking, updateBookingStatus };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

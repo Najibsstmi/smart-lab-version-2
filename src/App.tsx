@@ -7,6 +7,7 @@ import { DataProvider } from './contexts/DataContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import BookingForm from './pages/BookingForm';
 import BookingList from './pages/BookingList';
@@ -37,6 +38,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/lupa-kata-laluan" element={<ForgotPassword />} />
 
           {/* Print pun kena login supaya data & akses terkawal */}
           <Route

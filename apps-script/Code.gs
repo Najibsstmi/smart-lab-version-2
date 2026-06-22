@@ -60,6 +60,153 @@ function hashPassword(password) {
   }).join('');
 }
 
+function getPasswordResetKey_(email) {
+  return 'password_reset_' + hashPassword(String(email || '').trim().toLowerCase());
+}
+
+function requestPasswordReset_(sheetPengguna, emailValue) {
+  var email = String(emailValue || '').trim().toLowerCase();
+  if (!email) {
+    return { ok: false, error: 'Missing email' };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var resetKey = getPasswordResetKey_(email);
+  var cooldownKey = resetKey + '_cooldown';
+
+  // Respons kekal sama supaya orang luar tidak boleh menyemak emel yang berdaftar.
+  if (cache.get(cooldownKey)) {
+    return { ok: true };
+  }
+
+  cache.put(cooldownKey, '1', 60);
+
+  var users = readSheetData(sheetPengguna);
+  var user = null;
+
+  for (var i = 0; i < users.length; i++) {
+    if (String(users[i].email || '').trim().toLowerCase() === email) {
+      user = users[i];
+      break;
+    }
+  }
+
+  if (!user) {
+    return { ok: true };
+  }
+
+  var code = String(Math.floor(100000 + Math.random() * 900000));
+  var expiresAt = new Date().getTime() + 10 * 60 * 1000;
+  cache.put(
+    resetKey,
+    JSON.stringify({
+      code_hash: hashPassword(code),
+      attempts: 0,
+      expires_at: expiresAt
+    }),
+    600
+  );
+
+  try {
+    MailApp.sendEmail(
+      email,
+      'Kod Tetapan Semula Kata Laluan Smart Lab',
+      'Salam ' + (user.name || '') + ',\n\n' +
+        'Kod pengesahan Smart Lab anda ialah: ' + code + '\n\n' +
+        'Kod ini sah selama 10 minit. Jika anda tidak meminta kod ini, abaikan emel ini.\n\n' +
+        'Terima kasih.'
+    );
+  } catch (mailError) {
+    console.error('Gagal menghantar emel reset kata laluan: ' + mailError);
+    cache.remove(resetKey);
+  }
+
+  return { ok: true };
+}
+
+function resetPassword_(sheetPengguna, emailValue, codeValue, newPasswordValue) {
+  var email = String(emailValue || '').trim().toLowerCase();
+  var code = String(codeValue || '').trim();
+  var newPassword = String(newPasswordValue || '');
+
+  if (!email || !code || !newPassword) {
+    return { ok: false, error: 'Missing fields' };
+  }
+
+  if (newPassword.length < 8) {
+    return { ok: false, error: 'Password too short' };
+  }
+
+  var cache = CacheService.getScriptCache();
+  var resetKey = getPasswordResetKey_(email);
+  var cachedValue = cache.get(resetKey);
+
+  if (!cachedValue) {
+    return { ok: false, error: 'Invalid or expired code' };
+  }
+
+  var resetData;
+  try {
+    resetData = JSON.parse(cachedValue);
+  } catch (parseError) {
+    cache.remove(resetKey);
+    return { ok: false, error: 'Invalid or expired code' };
+  }
+
+  var remainingSeconds = Math.ceil((Number(resetData.expires_at) - new Date().getTime()) / 1000);
+  if (remainingSeconds <= 0) {
+    cache.remove(resetKey);
+    return { ok: false, error: 'Invalid or expired code' };
+  }
+
+  if (Number(resetData.attempts || 0) >= 5) {
+    cache.remove(resetKey);
+    return { ok: false, error: 'Too many attempts' };
+  }
+
+  if (hashPassword(code) !== resetData.code_hash) {
+    resetData.attempts = Number(resetData.attempts || 0) + 1;
+    cache.put(resetKey, JSON.stringify(resetData), remainingSeconds);
+    return {
+      ok: false,
+      error: resetData.attempts >= 5 ? 'Too many attempts' : 'Invalid or expired code'
+    };
+  }
+
+  var rows = sheetPengguna.getDataRange().getValues();
+  for (var rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+    if (!rows[rowIndex][1]) continue;
+
+    try {
+      var user = JSON.parse(rows[rowIndex][1]);
+      if (String(user.email || '').trim().toLowerCase() === email) {
+        user.password_hash = hashPassword(newPassword);
+        user.password_updated_at = new Date().toISOString();
+        sheetPengguna.getRange(rowIndex + 1, 2).setValue(JSON.stringify(user));
+        cache.remove(resetKey);
+
+        try {
+          MailApp.sendEmail(
+            email,
+            'Kata Laluan Smart Lab Telah Dikemas Kini',
+            'Kata laluan akaun Smart Lab anda telah berjaya ditetapkan semula. ' +
+              'Jika anda tidak melakukan perubahan ini, hubungi pentadbir sistem dengan segera.'
+          );
+        } catch (confirmationMailError) {
+          console.error('Gagal menghantar emel pengesahan reset: ' + confirmationMailError);
+        }
+
+        return { ok: true };
+      }
+    } catch (rowError) {
+      console.error('Data pengguna rosak pada baris ' + (rowIndex + 1) + ': ' + rowError);
+    }
+  }
+
+  cache.remove(resetKey);
+  return { ok: false, error: 'Email not found' };
+}
+
 function uniqueEmails_(arr) {
   return arr.filter(function (email, index, self) {
     return email && self.indexOf(email) === index;
@@ -256,6 +403,17 @@ function doPost(e) {
     // ==============================
     if (data.action === 'sendPushToRoles') {
       return json_(sendPushToRoles_(sheetPushTokens, data));
+    }
+
+    // ==============================
+    // PASSWORD RESET
+    // ==============================
+    if (data.action === 'requestPasswordReset') {
+      return json_(requestPasswordReset_(sheetPengguna, data.email));
+    }
+
+    if (data.action === 'resetPassword') {
+      return json_(resetPassword_(sheetPengguna, data.email, data.code, data.newPassword));
     }
 
     // ==============================

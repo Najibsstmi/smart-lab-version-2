@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Role } from '../types';
 import { registerPushForUser } from '../lib/pushNotifications';
 
@@ -15,6 +15,12 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (name: string, email: string, password: string, role: Role) => Promise<boolean>;
+  requestPasswordReset: (email: string) => Promise<boolean>;
+  resetPassword: (
+    email: string,
+    code: string,
+    newPassword: string
+  ) => Promise<{ ok: boolean; error?: string }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -128,21 +134,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const requestPasswordReset = async (email: string): Promise<boolean> => {
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify({
+          action: 'requestPasswordReset',
+          email,
+        }),
+      });
+
+      const data = await response.json();
+      return response.ok && data.ok === true;
+    } catch (err) {
+      console.error('Password reset request failed:', err);
+      return false;
+    }
+  };
+
+  const resetPassword = async (
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify({
+          action: 'resetPassword',
+          email,
+          code,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+      return {
+        ok: response.ok && data.ok === true,
+        error: data.error,
+      };
+    } catch (err) {
+      console.error('Password reset failed:', err);
+      return { ok: false, error: 'Network error' };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem(LOCAL_USER_KEY);
   };
 
-  const value = useMemo(
-    () => ({
-      user,
-      loading,
-      login,
-      logout,
-      register,
-    }),
-    [user, loading]
-  );
+  const value = {
+    user,
+    loading,
+    login,
+    logout,
+    register,
+    requestPasswordReset,
+    resetPassword,
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -146,6 +146,8 @@ export default function BookingForm() {
   const [bahanList, setBahanList] = useState<Item[]>([]);
   const [radasList, setRadasList] = useState<Item[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const filteredExperiments = experiments.filter(
     (e) => e.tingkatan === tingkatan && e.jenis === jenisTempahan
@@ -247,12 +249,20 @@ export default function BookingForm() {
     []
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !eksperimenId || !tarikh || !masa) return;
+    setSubmitError('');
+
+    if (!user || !eksperimenId || !tarikh || !masa) {
+      setSubmitError('Sila lengkapkan eksperimen, tarikh dan masa sebelum menghantar.');
+      return;
+    }
 
     const exp = experiments.find((e) => e.id === eksperimenId);
-    if (!exp) return;
+    if (!exp) {
+      setSubmitError('Maklumat eksperimen tidak dijumpai. Sila pilih semula eksperimen.');
+      return;
+    }
 
     const bahanConverted = bahanList.map((x) => ({
       ...x,
@@ -272,7 +282,9 @@ export default function BookingForm() {
           : Number(x.unit_khas_nilai),
     }));
 
-    addBooking({
+    setIsSubmitting(true);
+
+    const saved = await addBooking({
       guru_id: user.id,
       guru_name: user.name,
       guru_email: user.email,
@@ -290,17 +302,25 @@ export default function BookingForm() {
       catatan_guru: catatanGuru,
     });
 
-    navigate('/');
+    setIsSubmitting(false);
+
+    if (!saved) {
+      setSubmitError('Tempahan tidak berjaya dihantar. Sila semak internet dan cuba lagi.');
+      return;
+    }
+
+    navigate('/tempahan');
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6 md:px-6">
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 pb-32 md:px-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Borang Tempahan Baru</h1>
         <p className="text-slate-500">Isi maklumat di bawah untuk menempah radas dan bahan makmal.</p>
       </div>
 
       <form
+        id="booking-form"
         onSubmit={handleSubmit}
         className="space-y-8 bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-slate-200"
       >
@@ -527,17 +547,34 @@ export default function BookingForm() {
           </div>
         )}
 
-        <div className="pt-6 border-t border-slate-200 flex">
+      </form>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:left-72">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-h-5 text-sm" aria-live="polite">
+            {submitError ? (
+              <p className="font-medium text-red-600" role="alert">{submitError}</p>
+            ) : (
+              <p className="text-slate-500">
+                {!eksperimenId || !tarikh || !masa
+                  ? 'Lengkapkan eksperimen, tarikh dan masa untuk menghantar.'
+                  : 'Semua maklumat utama telah lengkap.'}
+              </p>
+            )}
+          </div>
+
           <button
+            form="booking-form"
             type="submit"
-            disabled={!eksperimenId || isCalculating}
-            className="w-full md:w-auto md:ml-auto flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!eksperimenId || !tarikh || !masa || isCalculating || isSubmitting}
+            aria-busy={isSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
-            <Save className="w-5 h-5" />
-            Hantar Tempahan
+            {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+            {isSubmitting ? 'Menghantar...' : 'Hantar Tempahan'}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

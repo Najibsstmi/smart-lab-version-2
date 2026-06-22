@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Footer from '../components/Footer';
-import { FlaskConical } from 'lucide-react';
 
 export default function Login() {
 
@@ -91,9 +90,18 @@ export default function Login() {
                 {/* Password */}
                 <div>
 
-                  <label className="block text-sm font-medium text-slate-700">
-                    Kata Laluan
-                  </label>
+                  <div className="flex items-center justify-between gap-4">
+                    <label className="block text-sm font-medium text-slate-700">
+                      Kata Laluan
+                    </label>
+
+                    <Link
+                      to="/lupa-kata-laluan"
+                      className="text-sm font-medium text-emerald-600 hover:text-emerald-500"
+                    >
+                      Lupa kata laluan?
+                    </Link>
+                  </div>
 
                   <div className="mt-1">
 
